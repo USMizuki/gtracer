@@ -26,6 +26,7 @@ class _GaussianTrace(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_out_color, grad_out_depth, grad_out_alpha):
         rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, colors, depth, alpha = ctx.saved_tensors
+        grad_rays_d = torch.zeros_like(rays_d)
         grad_means3D = torch.zeros_like(means3D)
         grad_opacity = torch.zeros_like(opacity)
         grad_SinvR = torch.zeros_like(SinvR)
@@ -34,14 +35,14 @@ class _GaussianTrace(torch.autograd.Function):
         ctx.bvh.trace_backward(
             rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, 
             colors, depth, alpha, 
-            grad_means3D, grad_opacity, grad_SinvR, grad_shs,
+            grad_rays_d, grad_means3D, grad_opacity, grad_SinvR, grad_shs,
             grad_out_color, grad_out_depth, grad_out_alpha,
             ctx.alpha_min, ctx.transmittance_min, ctx.deg,
         )
         grads = (
             None,
             None,
-            None,
+            grad_rays_d,
             None,
             grad_means3D,
             grad_opacity,

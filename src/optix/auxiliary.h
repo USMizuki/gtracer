@@ -8,7 +8,7 @@
 
 #include <glm/glm.hpp>
 #define MAX_BUFFER_SIZE 16
-#define T_SCENE_MAX 100.0f
+#define T_SCENE_MAX 10000.0f
 
 namespace gtracer{
 

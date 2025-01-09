@@ -69,7 +69,7 @@ extern "C" __global__ void __raygen__rg() {
 
 				glm::vec3 pos = ray_o + d * ray_d;
 				glm::vec3 p_g = SinvR * (mean3D - pos); 
-				float alpha = min(0.99f, o * __expf(-0.5f * glm::dot(p_g, p_g)));
+				float alpha = min(0.99f, o * __expf(-0.5f * glm::dot(p_g, p_g))) * 0.9;
 
 				if (alpha<params.alpha_min) continue;
 
@@ -82,11 +82,12 @@ extern "C" __global__ void __raygen__rg() {
 
 				T *= (1 - alpha);
 
+				// std::cout<<t_start<<' '<<t_curr<<' '<<T<<std::endl;
 				if (T < params.transmittance_min){
 					break;
 				}
 			}
-			
+			// printf("%f %f %f \n", t_start,t_curr, T);			
 
 		}
 		if (t_curr==0.0f) break;

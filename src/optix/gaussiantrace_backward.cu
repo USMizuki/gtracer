@@ -103,10 +103,11 @@ extern "C" __global__ void __raygen__rg() {
 				glm::vec3 dL_dpg = -dL_dG * G * p_g;
 				glm::mat3x3 dL_dSinvR = glm::outerProduct(dL_dpg, mean_pos);
 				
-				glm::vec3 dL_dmean_pos = glm::transpose(SinvR) * dL_dpg;
-				glm::vec3 dL_dmean3D = dL_dmean_pos;
+				glm::vec3 dL_dmean_pos = glm::transpose(SinvR) * dL_dpg; 	// dL_dmean_pos = - glm::transpose(SinvR) * dL_dpg
+				glm::vec3 dL_dmean3D = dL_dmean_pos;						// dL_dmean3D = - dL_dmean_pos
+				glm::vec3 dL_dray_d = -dL_dmean_pos * d;					// dL_dray_d = dL_dmean_pos * d
 
-				dL_dd -= glm::dot(dL_dmean_pos, ray_d);
+				dL_dd -= glm::dot(dL_dmean_pos, ray_d);						// dL_dd += glm::dot(dL_dmean_pos, ray_d)
 
 				glm::vec3 dL_dog = -dL_dd / dot_dg_dg * d_g;
 				glm::vec3 dL_ddg = -dL_dd / dot_dg_dg * o_g + 2 * dL_dd * glm::dot(o_g, d_g) / max(1e-6f, dot_dg_dg * dot_dg_dg) * d_g;
@@ -114,8 +115,10 @@ extern "C" __global__ void __raygen__rg() {
 				dL_dSinvR += glm::outerProduct(dL_dog, ray_o_mean3D);
 				dL_dmean3D -= glm::transpose(SinvR) * dL_dog;
 				dL_dSinvR += glm::outerProduct(dL_ddg, ray_d);
+				dL_dray_d += glm::transpose(SinvR) * (dL_ddg + dL_dog);
 
         		atomic_add((float*)(params.grad_means3D+gs_idx), dL_dmean3D);
+				atomic_add((float*)(params.grad_rays_d+gs_idx), dL_dray_d);
 				atomicAdd(params.grad_opacity+gs_idx, dL_do);
 
 				float* grad_SinvR = (float*)(params.grad_SinvR + gs_idx);

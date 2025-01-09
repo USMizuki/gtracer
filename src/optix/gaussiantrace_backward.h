@@ -17,6 +17,7 @@ struct Gaussiantrace_backward {
 		const glm::vec3* colors;
 		const float* depths;
 		const float* alpha;
+		glm::vec3* grad_rays_d;
 		glm::vec3* grad_means3D;
 		float* grad_opacity;
 		glm::mat3x3* grad_SinvR;
