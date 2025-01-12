@@ -1,24 +1,15 @@
 
-/*
- * Copyright (c) 2021 NVIDIA Corporation.  All rights reserved.
- *
- * NVIDIA Corporation and its licensors retain all intellectual property and proprietary
- * rights in and to this software, related documentation and any modifications thereto.
- * Any use, reproduction, disclosure or distribution of this software and related
- * documentation without an express license agreement from NVIDIA Corporation is strictly
- * prohibited.
- *
- * TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THIS SOFTWARE IS PROVIDED *AS IS*
- * AND NVIDIA AND ITS SUPPLIERS DISCLAIM ALL WARRANTIES, EITHER EXPRESS OR IMPLIED,
- * INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE.  IN NO EVENT SHALL NVIDIA OR ITS SUPPLIERS BE LIABLE FOR ANY
- * SPECIAL, INCIDENTAL, INDIRECT, OR CONSEQUENTIAL DAMAGES WHATSOEVER (INCLUDING, WITHOUT
- * LIMITATION, DAMAGES FOR LOSS OF BUSINESS PROFITS, BUSINESS INTERRUPTION, LOSS OF
- * BUSINESS INFORMATION, OR ANY OTHER PECUNIARY LOSS) ARISING OUT OF THE USE OF OR
- * INABILITY TO USE THIS SOFTWARE, EVEN IF NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGES
- */
-
+/* 
+* SPDX-FileCopyrightText: Copyright (c) 2019 - 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved. 
+* SPDX-License-Identifier: LicenseRef-NvidiaProprietary 
+* 
+* NVIDIA CORPORATION, its affiliates and licensors retain all intellectual 
+* property and proprietary rights in and to this material, related 
+* documentation and any modifications thereto. Any use, reproduction, 
+* disclosure or distribution of this material and related documentation 
+* without an express license agreement from NVIDIA CORPORATION or 
+* its affiliates is strictly prohibited. 
+*/
 /// @file
 /// @author NVIDIA Corporation
 /// @brief  OptiX public API header
@@ -26,12 +17,8 @@
 /// OptiX types include file -- defines types and enums used by the API.
 /// For the math library routines include optix_math.h
 
-#if !defined( __OPTIX_INCLUDE_INTERNAL_HEADERS__ )
-#error("optix_7_types.h is an internal header file and must not be used directly.  Please use optix_types.h, optix_host.h, optix_device.h or optix.h instead.")
-#endif
-
-#ifndef __optix_optix_7_types_h__
-#define __optix_optix_7_types_h__
+#ifndef OPTIX_OPTIX_TYPES_H
+#define OPTIX_OPTIX_TYPES_H
 
 #if !defined(__CUDACC_RTC__)
 #include <stddef.h> /* for size_t */
@@ -100,6 +87,9 @@ typedef unsigned int OptixVisibilityMask;
 /// Alignment requirement for OptixStaticTransform, OptixMatrixMotionTransform, OptixSRTMotionTransform.
 #define OPTIX_TRANSFORM_BYTE_ALIGNMENT 64ull
 
+/// Alignment requirement for OptixOpacityMicromapArrayBuildInput::perMicromapDescBuffer.
+#define OPTIX_OPACITY_MICROMAP_DESC_BUFFER_BYTE_ALIGNMENT 8ull
+
 /// Maximum number of registers allowed. Defaults to no explicit limit.
 #define OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT 0
 
@@ -109,6 +99,34 @@ typedef unsigned int OptixVisibilityMask;
 /// Maximum number of payload values allowed.
 #define OPTIX_COMPILE_DEFAULT_MAX_PAYLOAD_VALUE_COUNT 32
 
+/// Opacity micromaps encode the states of microtriangles in either 1 bit (2-state) or 2 bits (4-state) using
+/// the following values.
+#define OPTIX_OPACITY_MICROMAP_STATE_TRANSPARENT          ( 0 )
+#define OPTIX_OPACITY_MICROMAP_STATE_OPAQUE               ( 1 )
+#define OPTIX_OPACITY_MICROMAP_STATE_UNKNOWN_TRANSPARENT  ( 2 )
+#define OPTIX_OPACITY_MICROMAP_STATE_UNKNOWN_OPAQUE       ( 3 )
+
+/// Predefined index to indicate that a triangle in the BVH build doesn't have an associated opacity micromap,
+/// and that it should revert to one of the four possible states for the full triangle.
+#define OPTIX_OPACITY_MICROMAP_PREDEFINED_INDEX_FULLY_TRANSPARENT          ( -1 )
+#define OPTIX_OPACITY_MICROMAP_PREDEFINED_INDEX_FULLY_OPAQUE               ( -2 )
+#define OPTIX_OPACITY_MICROMAP_PREDEFINED_INDEX_FULLY_UNKNOWN_TRANSPARENT  ( -3 )
+#define OPTIX_OPACITY_MICROMAP_PREDEFINED_INDEX_FULLY_UNKNOWN_OPAQUE       ( -4 )
+
+/// Alignment requirement for opacity micromap array buffers
+#define OPTIX_OPACITY_MICROMAP_ARRAY_BUFFER_BYTE_ALIGNMENT 128ull
+
+/// Maximum subdivision level for opacity micromaps
+#define OPTIX_OPACITY_MICROMAP_MAX_SUBDIVISION_LEVEL 12
+
+/// Maximum subdivision level for displacement micromaps
+#define OPTIX_DISPLACEMENT_MICROMAP_MAX_SUBDIVISION_LEVEL 5
+
+/// Alignment requirement for displacement micromap descriptor buffers
+#define OPTIX_DISPLACEMENT_MICROMAP_DESC_BUFFER_BYTE_ALIGNMENT 8ull
+
+/// Alignment requirement for displacement micromap array buffers
+#define OPTIX_DISPLACEMENT_MICROMAP_ARRAY_BUFFER_BYTE_ALIGNMENT 128ull
 
 /// Result codes returned from API functions
 ///
@@ -133,7 +151,7 @@ typedef enum OptixResult
     OPTIX_ERROR_INVALID_DEVICE_CONTEXT          = 7051,
     OPTIX_ERROR_CUDA_NOT_INITIALIZED            = 7052,
     OPTIX_ERROR_VALIDATION_FAILURE              = 7053,
-    OPTIX_ERROR_INVALID_PTX                     = 7200,
+    OPTIX_ERROR_INVALID_INPUT                   = 7200,
     OPTIX_ERROR_INVALID_LAUNCH_PARAMETER        = 7201,
     OPTIX_ERROR_INVALID_PAYLOAD_ACCESS          = 7202,
     OPTIX_ERROR_INVALID_ATTRIBUTE_ACCESS        = 7203,
@@ -145,7 +163,7 @@ typedef enum OptixResult
     OPTIX_ERROR_INTERNAL_COMPILER_ERROR         = 7299,
     OPTIX_ERROR_DENOISER_MODEL_NOT_SET          = 7300,
     OPTIX_ERROR_DENOISER_NOT_INITIALIZED        = 7301,
-    OPTIX_ERROR_ACCEL_NOT_COMPATIBLE            = 7400,
+    OPTIX_ERROR_NOT_COMPATIBLE                  = 7400,
     OPTIX_ERROR_PAYLOAD_TYPE_MISMATCH           = 7500,
     OPTIX_ERROR_PAYLOAD_TYPE_RESOLUTION_FAILED  = 7501,
     OPTIX_ERROR_PAYLOAD_TYPE_ID_INVALID         = 7502,
@@ -171,7 +189,7 @@ typedef enum OptixDeviceProperty
     OPTIX_DEVICE_PROPERTY_LIMIT_MAX_TRACE_DEPTH = 0x2001,
 
     /// Maximum value to pass into optixPipelineSetStackSize for parameter
-    /// maxTraversableGraphDepth.v sizeof( unsigned int )
+    /// maxTraversableGraphDepth. sizeof( unsigned int )
     OPTIX_DEVICE_PROPERTY_LIMIT_MAX_TRAVERSABLE_GRAPH_DEPTH = 0x2002,
 
     /// The maximum number of primitives (over all build inputs) as input to a single
@@ -197,8 +215,15 @@ typedef enum OptixDeviceProperty
     /// Acceleration Structure (IAS). sizeof( unsigned int )
     OPTIX_DEVICE_PROPERTY_LIMIT_MAX_SBT_RECORDS_PER_GAS = 0x2008,
 
-    /// The maximum value for #OptixInstance::sbtOffset. sizeof( unsigned int )
+    /// The maximum summed value of #OptixInstance::sbtOffset.
+    /// Also the maximum summed value of sbt offsets of all ancestor
+    /// instances of a GAS in a traversable graph. sizeof( unsigned int )
     OPTIX_DEVICE_PROPERTY_LIMIT_MAX_SBT_OFFSET = 0x2009,
+
+    /// Returns a flag specifying capabilities of the optixReorder() device function.  See
+    /// OptixDevicePropertyShaderExecutionReorderingFlags for documentation on the values
+    /// that can be returned. sizeof( unsigned int )
+    OPTIX_DEVICE_PROPERTY_SHADER_EXECUTION_REORDERING = 0x200A,
 } OptixDeviceProperty;
 
 /// Type of the callback function used for log messages.
@@ -255,8 +280,22 @@ typedef struct OptixDeviceContextOptions
     OptixDeviceContextValidationMode validationMode;
 } OptixDeviceContextOptions;
 
-/// Flags used by #OptixBuildInputTriangleArray::flags
-/// and #OptixBuildInput::flag
+/// Flags used to interpret the result of #optixDeviceContextGetProperty() and
+/// OPTIX_DEVICE_PROPERTY_SHADER_EXECUTION_REORDERING
+///
+/// \see #optixDeviceContextGetProperty()
+typedef enum OptixDevicePropertyShaderExecutionReorderingFlags
+{
+    /// optixReorder() acts as a no-op, and no thread reordering is performed. Note that
+    /// it is still legal to call this device function; no errors will be generated.
+    OPTIX_DEVICE_PROPERTY_SHADER_EXECUTION_REORDERING_FLAG_NONE     = 0,
+
+    // Standard thread reordering is supported
+    OPTIX_DEVICE_PROPERTY_SHADER_EXECUTION_REORDERING_FLAG_STANDARD = 1 << 0,
+} OptixDevicePropertyShaderExecutionReorderingFlags;
+
+/// Flags used by #OptixBuildInputTriangleArray::flags,
+/// #OptixBuildInputSphereArray::flags
 /// and #OptixBuildInputCustomPrimitiveArray::flags
 typedef enum OptixGeometryFlags
 {
@@ -276,7 +315,6 @@ typedef enum OptixGeometryFlags
     /// Effectively ignores ray flags
     /// OPTIX_RAY_FLAG_CULL_BACK_FACING_TRIANGLES and OPTIX_RAY_FLAG_CULL_FRONT_FACING_TRIANGLES.
     OPTIX_GEOMETRY_FLAG_DISABLE_TRIANGLE_FACE_CULLING = 1u << 2,
-
 } OptixGeometryFlags;
 
 /// Legacy type: A subset of the hit kinds for built-in primitive intersections.
@@ -297,6 +335,8 @@ typedef enum OptixIndicesFormat
 {
     /// No indices, this format must only be used in combination with triangle soups, i.e., numIndexTriplets must be zero
     OPTIX_INDICES_FORMAT_NONE = 0,
+    /// Three bytes
+    OPTIX_INDICES_FORMAT_UNSIGNED_BYTE3 = 0x2101,
     /// Three shorts
     OPTIX_INDICES_FORMAT_UNSIGNED_SHORT3 = 0x2102,
     /// Three ints
@@ -321,6 +361,263 @@ typedef enum OptixTransformFormat
     OPTIX_TRANSFORM_FORMAT_NONE           = 0,       ///< no transform, default for zero initialization
     OPTIX_TRANSFORM_FORMAT_MATRIX_FLOAT12 = 0x21E1,  ///< 3x4 row major affine matrix
 } OptixTransformFormat;
+
+typedef enum OptixDisplacementMicromapBiasAndScaleFormat
+{
+    OPTIX_DISPLACEMENT_MICROMAP_BIAS_AND_SCALE_FORMAT_NONE   = 0,
+    OPTIX_DISPLACEMENT_MICROMAP_BIAS_AND_SCALE_FORMAT_FLOAT2 = 0x2241,
+    OPTIX_DISPLACEMENT_MICROMAP_BIAS_AND_SCALE_FORMAT_HALF2  = 0x2242,
+} OptixDisplacementMicromapBiasAndScaleFormat;
+
+typedef enum OptixDisplacementMicromapDirectionFormat
+{
+    OPTIX_DISPLACEMENT_MICROMAP_DIRECTION_FORMAT_NONE   = 0,
+    OPTIX_DISPLACEMENT_MICROMAP_DIRECTION_FORMAT_FLOAT3 = 0x2261,
+    OPTIX_DISPLACEMENT_MICROMAP_DIRECTION_FORMAT_HALF3  = 0x2262,
+} OptixDisplacementMicromapDirectionFormat;
+
+/// Specifies whether to use a 2- or 4-state opacity micromap format.
+typedef enum OptixOpacityMicromapFormat
+{
+    /// invalid format
+    OPTIX_OPACITY_MICROMAP_FORMAT_NONE = 0,
+    /// 0: Transparent, 1: Opaque
+    OPTIX_OPACITY_MICROMAP_FORMAT_2_STATE = 1,
+    /// 0: Transparent, 1: Opaque, 2: Unknown-Transparent, 3: Unknown-Opaque
+    OPTIX_OPACITY_MICROMAP_FORMAT_4_STATE = 2,
+} OptixOpacityMicromapFormat;
+
+/// indexing mode of triangles to opacity micromaps in an array, used in #OptixBuildInputOpacityMicromap.
+typedef enum OptixOpacityMicromapArrayIndexingMode
+{
+    /// No opacity micromap is used
+    OPTIX_OPACITY_MICROMAP_ARRAY_INDEXING_MODE_NONE = 0,
+    /// An implicit linear mapping of triangles to opacity micromaps in the
+    /// opacity micromap array is used. triangle[i] will use opacityMicromapArray[i].
+    OPTIX_OPACITY_MICROMAP_ARRAY_INDEXING_MODE_LINEAR = 1,
+    /// OptixBuildInputOpacityMicromap::indexBuffer provides a per triangle array of predefined indices
+    /// and/or indices into OptixBuildInputOpacityMicromap::opacityMicromapArray.
+    /// See OptixBuildInputOpacityMicromap::indexBuffer for more details.
+    OPTIX_OPACITY_MICROMAP_ARRAY_INDEXING_MODE_INDEXED = 2,
+} OptixOpacityMicromapArrayIndexingMode;
+
+/// Opacity micromap usage count for acceleration structure builds.
+/// Specifies how many opacity micromaps of a specific type are referenced by triangles when building the AS.
+/// Note that while this is similar to OptixOpacityMicromapHistogramEntry, the usage count specifies how many opacity micromaps
+/// of a specific type are referenced by triangles in the AS.
+typedef struct OptixOpacityMicromapUsageCount
+{
+    /// Number of opacity micromaps with this format and subdivision level referenced by triangles in the corresponding
+    /// triangle build input at AS build time.
+    unsigned int count;
+    /// Number of micro-triangles is 4^level. Valid levels are [0, 12]
+    unsigned int subdivisionLevel;
+    /// opacity micromap format.
+    OptixOpacityMicromapFormat format;
+} OptixOpacityMicromapUsageCount;
+
+typedef struct OptixBuildInputOpacityMicromap
+{
+    /// Indexing mode of triangle to opacity micromap array mapping.
+    OptixOpacityMicromapArrayIndexingMode indexingMode;
+
+    /// Device pointer to a opacity micromap array used by this build input array.
+    /// This buffer is required when #OptixBuildInputOpacityMicromap::indexingMode is
+    /// OPTIX_OPACITY_MICROMAP_ARRAY_INDEXING_MODE_LINEAR or OPTIX_OPACITY_MICROMAP_ARRAY_INDEXING_MODE_INDEXED.
+    /// Must be zero if #OptixBuildInputOpacityMicromap::indexingMode is OPTIX_OPACITY_MICROMAP_ARRAY_INDEXING_MODE_NONE.
+    CUdeviceptr  opacityMicromapArray;
+
+    /// int16 or int32 buffer specifying which opacity micromap index to use for each triangle.
+    /// Instead of an actual index, one of the predefined indices
+    /// OPTIX_OPACITY_MICROMAP_PREDEFINED_INDEX_(FULLY_TRANSPARENT | FULLY_OPAQUE | FULLY_UNKNOWN_TRANSPARENT | FULLY_UNKNOWN_OPAQUE)
+    /// can be used to indicate that there is no opacity micromap for this particular triangle
+    /// but the triangle is in a uniform state and the selected behavior is applied
+    /// to the entire triangle.
+    /// This buffer is required when #OptixBuildInputOpacityMicromap::indexingMode is OPTIX_OPACITY_MICROMAP_ARRAY_INDEXING_MODE_INDEXED.
+    /// Must be zero if #OptixBuildInputOpacityMicromap::indexingMode is
+    /// OPTIX_OPACITY_MICROMAP_ARRAY_INDEXING_MODE_LINEAR or OPTIX_OPACITY_MICROMAP_ARRAY_INDEXING_MODE_NONE.
+    CUdeviceptr  indexBuffer;
+
+    /// 0, 2 or 4 (unused, 16 or 32 bit)
+    /// Must be non-zero when #OptixBuildInputOpacityMicromap::indexingMode is OPTIX_OPACITY_MICROMAP_ARRAY_INDEXING_MODE_INDEXED.
+    unsigned int indexSizeInBytes;
+
+    /// Opacity micromap index buffer stride. If set to zero, indices are assumed to be tightly
+    /// packed and stride is inferred from #OptixBuildInputOpacityMicromap::indexSizeInBytes.
+    unsigned int indexStrideInBytes;
+
+    /// Constant offset to non-negative opacity micromap indices
+    unsigned int indexOffset;
+
+    /// Number of OptixOpacityMicromapUsageCount.
+    unsigned int numMicromapUsageCounts;
+    /// List of number of usages of opacity micromaps of format and subdivision combinations.
+    /// Counts with equal format and subdivision combination (duplicates) are added together.
+    const OptixOpacityMicromapUsageCount* micromapUsageCounts;
+} OptixBuildInputOpacityMicromap;
+
+typedef struct OptixRelocateInputOpacityMicromap
+{
+    /// Device pointer to a relocated opacity micromap array used by the source build input array.
+    /// May be zero when no micromaps where used in the source accel, or the referenced opacity
+    /// micromaps don't require relocation (for example relocation of a GAS on the source device).
+    CUdeviceptr  opacityMicromapArray;
+} OptixRelocateInputOpacityMicromap;
+
+
+/// DMM input data format.
+typedef enum OptixDisplacementMicromapFormat
+{
+    OPTIX_DISPLACEMENT_MICROMAP_FORMAT_NONE                      = 0,
+    OPTIX_DISPLACEMENT_MICROMAP_FORMAT_64_MICRO_TRIS_64_BYTES    = 1,
+    OPTIX_DISPLACEMENT_MICROMAP_FORMAT_256_MICRO_TRIS_128_BYTES  = 2,
+    OPTIX_DISPLACEMENT_MICROMAP_FORMAT_1024_MICRO_TRIS_128_BYTES = 3,
+} OptixDisplacementMicromapFormat;
+
+/// Flags defining behavior of DMMs in a DMM array.
+typedef enum OptixDisplacementMicromapFlags
+{
+    OPTIX_DISPLACEMENT_MICROMAP_FLAG_NONE = 0,
+
+    /// This flag is mutually exclusive with OPTIX_DISPLACEMENT_MICROMAP_FLAG_PREFER_FAST_BUILD.
+    OPTIX_DISPLACEMENT_MICROMAP_FLAG_PREFER_FAST_TRACE = 1 << 0,
+
+    /// This flag is mutually exclusive with OPTIX_DISPLACEMENT_MICROMAP_FLAG_PREFER_FAST_TRACE.
+    OPTIX_DISPLACEMENT_MICROMAP_FLAG_PREFER_FAST_BUILD = 1 << 1,
+
+} OptixDisplacementMicromapFlags;
+
+typedef enum OptixDisplacementMicromapTriangleFlags
+{
+    OPTIX_DISPLACEMENT_MICROMAP_TRIANGLE_FLAG_NONE             = 0,
+    /// The triangle edge v0..v1 is decimated: after subdivision the number of micro triangles on that edge is halved
+    /// such that a neighboring triangle can have a lower subdivision level without introducing cracks.
+    OPTIX_DISPLACEMENT_MICROMAP_TRIANGLE_FLAG_DECIMATE_EDGE_01 = 1 << 0,
+    /// The triangle edge v1..v2 is decimated.
+    OPTIX_DISPLACEMENT_MICROMAP_TRIANGLE_FLAG_DECIMATE_EDGE_12 = 1 << 1,
+    /// The triangle edge v2..v0 is decimated.
+    OPTIX_DISPLACEMENT_MICROMAP_TRIANGLE_FLAG_DECIMATE_EDGE_20 = 1 << 2,
+} OptixDisplacementMicromapTriangleFlags;
+
+typedef struct OptixDisplacementMicromapDesc
+{
+    /// Block is located at displacementValuesBuffer + byteOffset
+    unsigned int   byteOffset;
+    /// Number of micro-triangles is 4^level. Valid levels are [0, 5]
+    unsigned short subdivisionLevel;
+    /// Format (OptixDisplacementMicromapFormat)
+    unsigned short format;
+} OptixDisplacementMicromapDesc;
+
+/// Displacement micromap histogram entry.
+/// Specifies how many displacement micromaps of a specific type are input to the displacement micromap array build.
+/// Note that while this is similar to OptixDisplacementMicromapUsageCount, the histogram entry specifies how many displacement micromaps
+/// of a specific type are combined into a displacement micromap array.
+typedef struct OptixDisplacementMicromapHistogramEntry
+{
+    /// Number of displacement micromaps with the format and subdivision level that are input to the displacement micromap array build.
+    unsigned int                    count;
+    /// Number of micro-triangles is 4^level. Valid levels are [0, 5]
+    unsigned int                    subdivisionLevel;
+    /// Displacement micromap format.
+    OptixDisplacementMicromapFormat format;
+} OptixDisplacementMicromapHistogramEntry;
+
+/// Inputs to displacement micromaps array construction.
+typedef struct OptixDisplacementMicromapArrayBuildInput
+{
+    /// Flags that apply to all displacement micromaps in array.
+    OptixDisplacementMicromapFlags                 flags;
+    /// 128 byte aligned pointer for displacement values input data (the displacement blocks).
+    CUdeviceptr                                    displacementValuesBuffer;
+    /// Descriptors for interpreting displacement values input data, one OptixDisplacementMicromapDesc entry required per displacement micromap.
+    /// This device pointer must be a multiple of OPTIX_DISPLACEMENT_MICROMAP_DESC_BUFFER_BYTE_ALIGNMENT.
+    CUdeviceptr                                    perDisplacementMicromapDescBuffer;
+    /// Stride between OptixDisplacementMicromapDesc in perDisplacementMicromapDescBuffer
+    /// If set to zero, the displacement micromap descriptors are assumed to be tightly packed and the stride is assumed to be sizeof( OptixDisplacementMicromapDesc ).
+    /// This stride must be a multiple of OPTIX_DISPLACEMENT_MICROMAP_DESC_BUFFER_BYTE_ALIGNMENT.
+    unsigned int                                   perDisplacementMicromapDescStrideInBytes;
+    /// Number of OptixDisplacementMicromapHistogramEntry entries.
+    unsigned int                                   numDisplacementMicromapHistogramEntries;
+    /// Histogram over DMMs for input format and subdivision combinations.
+    /// Counts of histogram bins with equal format and subdivision combinations are added together.
+    const OptixDisplacementMicromapHistogramEntry* displacementMicromapHistogramEntries;
+} OptixDisplacementMicromapArrayBuildInput;
+
+/// Displacement micromap usage count for acceleration structure builds.
+/// Specifies how many displacement micromaps of a specific type are referenced by triangles when building the AS.
+/// Note that while this is similar to OptixDisplacementMicromapHistogramEntry, the usage count specifies how many displacement micromaps
+/// of a specific type are referenced by triangles in the AS.
+typedef struct OptixDisplacementMicromapUsageCount
+{
+    /// Number of displacement micromaps with this format and subdivision level referenced by triangles in the corresponding
+    /// triangle build input at AS build time.
+    unsigned int                    count;
+    /// Number of micro-triangles is 4^level. Valid levels are [0, 5]
+    unsigned int                    subdivisionLevel;
+    /// Displacement micromaps format.
+    OptixDisplacementMicromapFormat format;
+} OptixDisplacementMicromapUsageCount;
+
+/// indexing mode of triangles to displacement micromaps in an array, used in #OptixBuildInputDisplacementMicromap.
+typedef enum OptixDisplacementMicromapArrayIndexingMode
+{
+    /// No displacement micromap is used
+    OPTIX_DISPLACEMENT_MICROMAP_ARRAY_INDEXING_MODE_NONE = 0,
+    /// An implicit linear mapping of triangles to displacement micromaps in the
+    /// displacement micromap array is used. triangle[i] will use displacementMicromapArray[i].
+    OPTIX_DISPLACEMENT_MICROMAP_ARRAY_INDEXING_MODE_LINEAR = 1,
+    /// OptixBuildInputDisplacementMicromap::displacementMicromapIndexBuffer provides a per triangle array of
+    /// indices into OptixBuildInputDisplacementMicromap::displacementMicromapArray.
+    /// See OptixBuildInputDisplacementMicromap::displacementMicromapIndexBuffer for more details.
+    OPTIX_DISPLACEMENT_MICROMAP_ARRAY_INDEXING_MODE_INDEXED = 2,
+} OptixDisplacementMicromapArrayIndexingMode;
+
+/// Optional displacement part of a triangle array input
+typedef struct OptixBuildInputDisplacementMicromap
+{
+    /// Indexing mode of triangle to displacement micromap array mapping.
+    OptixDisplacementMicromapArrayIndexingMode indexingMode;
+
+    /// Address to a displacement micromap array used by this build input array. Set to NULL to disable DMs for this input.
+    CUdeviceptr displacementMicromapArray;
+    /// int16 or int32 buffer specifying which displacement micromap index to use for each triangle. Only valid if displacementMicromapArray != NULL.
+    CUdeviceptr displacementMicromapIndexBuffer;
+    /// Per triangle-vertex displacement directions.
+    CUdeviceptr vertexDirectionsBuffer;
+    /// Optional per-vertex bias (offset) along displacement direction and displacement direction scale.
+    CUdeviceptr vertexBiasAndScaleBuffer;
+    /// Optional per-triangle flags, uint8_t per triangle, possible values defined in enum OptixDisplacementMicromapTriangleFlags
+    CUdeviceptr triangleFlagsBuffer;
+
+    /// Constant offset to displacement micromap indices as specified by the displacement micromap index buffer
+    unsigned int displacementMicromapIndexOffset;
+    /// Displacement micromap index buffer stride. If set to zero, indices are assumed to be tightly
+    /// packed and stride is inferred from #OptixBuildInputDisplacementMicromap::displacementMicromapIndexSizeInBytes.
+    unsigned int displacementMicromapIndexStrideInBytes;
+    /// 2 or 4 (16 or 32 bit)
+    unsigned int displacementMicromapIndexSizeInBytes;
+
+    /// Format of displacement vectors
+    OptixDisplacementMicromapDirectionFormat vertexDirectionFormat;
+    /// Stride between displacement vectors
+    unsigned int                             vertexDirectionStrideInBytes;
+
+    /// Format of vertex bias and direction scale
+    OptixDisplacementMicromapBiasAndScaleFormat vertexBiasAndScaleFormat;
+    /// Stride in bytes for vertex bias and direction scale entries
+    unsigned int                                vertexBiasAndScaleStrideInBytes;
+
+    /// Stride in bytes for triangleFlags
+    unsigned int triangleFlagsStrideInBytes;
+
+    /// Number of OptixDisplacementMicromapUsageCount entries.
+    unsigned int                               numDisplacementMicromapUsageCounts;
+    /// List of number of usages of displacement micromaps of format and subdivision combinations.
+    /// Counts with equal format and subdivision combination (duplicates) are added together.
+    const OptixDisplacementMicromapUsageCount* displacementMicromapUsageCounts;
+
+} OptixBuildInputDisplacementMicromap;
 
 
 /// Triangle inputs
@@ -394,8 +691,25 @@ typedef struct OptixBuildInputTriangleArray
     /// \see #OptixTransformFormat
     OptixTransformFormat transformFormat;
 
+    /// Optional opacity micromap inputs.
+    OptixBuildInputOpacityMicromap opacityMicromap;
+    /// Optional displacement micromap inputs.
+    OptixBuildInputDisplacementMicromap displacementMicromap;
 
 } OptixBuildInputTriangleArray;
+
+/// Triangle inputs
+///
+/// \see #OptixRelocateInput::triangleArray
+typedef struct OptixRelocateInputTriangleArray
+{
+    /// Number of sbt records available to the sbt index offset override.
+    /// Must match #OptixBuildInputTriangleArray::numSbtRecords of the source build input.
+    unsigned int numSbtRecords;
+
+    /// Opacity micromap inputs.
+    OptixRelocateInputOpacityMicromap opacityMicromap;
+} OptixRelocateInputTriangleArray;
 
 /// Builtin primitive types
 ///
@@ -411,9 +725,16 @@ typedef enum OptixPrimitiveType
     OPTIX_PRIMITIVE_TYPE_ROUND_LINEAR                  = 0x2503,
     /// CatmullRom curve with circular cross-section.
     OPTIX_PRIMITIVE_TYPE_ROUND_CATMULLROM              = 0x2504,
+    /// B-spline curve of degree 2 with oriented, flat cross-section.
+    OPTIX_PRIMITIVE_TYPE_FLAT_QUADRATIC_BSPLINE        = 0x2505,
+    /// Sphere.
     OPTIX_PRIMITIVE_TYPE_SPHERE                        = 0x2506,
+    /// Bezier curve of degree 3 with circular cross-section.
+    OPTIX_PRIMITIVE_TYPE_ROUND_CUBIC_BEZIER            = 0x2507,
     /// Triangle.
     OPTIX_PRIMITIVE_TYPE_TRIANGLE                      = 0x2531,
+    /// Triangle with an applied displacement micromap.
+    OPTIX_PRIMITIVE_TYPE_DISPLACED_MICROMESH_TRIANGLE  = 0x2532,
 } OptixPrimitiveType;
 
 /// Builtin flags may be bitwise combined.
@@ -422,18 +743,25 @@ typedef enum OptixPrimitiveType
 typedef enum OptixPrimitiveTypeFlags
 {
     /// Custom primitive.
-    OPTIX_PRIMITIVE_TYPE_FLAGS_CUSTOM                  = 1 << 0,
+    OPTIX_PRIMITIVE_TYPE_FLAGS_CUSTOM                       = 1 << 0,
     /// B-spline curve of degree 2 with circular cross-section.
-    OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_QUADRATIC_BSPLINE = 1 << 1,
+    OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_QUADRATIC_BSPLINE      = 1 << 1,
     /// B-spline curve of degree 3 with circular cross-section.
-    OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_CUBIC_BSPLINE     = 1 << 2,
+    OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_CUBIC_BSPLINE          = 1 << 2,
     /// Piecewise linear curve with circular cross-section.
-    OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_LINEAR            = 1 << 3,
+    OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_LINEAR                 = 1 << 3,
     /// CatmullRom curve with circular cross-section.
-    OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_CATMULLROM        = 1 << 4,
-    OPTIX_PRIMITIVE_TYPE_FLAGS_SPHERE                  = 1 << 6,
+    OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_CATMULLROM             = 1 << 4,
+    /// B-spline curve of degree 2 with oriented, flat cross-section.
+    OPTIX_PRIMITIVE_TYPE_FLAGS_FLAT_QUADRATIC_BSPLINE       = 1 << 5,
+    /// Sphere.
+    OPTIX_PRIMITIVE_TYPE_FLAGS_SPHERE                       = 1 << 6,
+    /// Bezier curve of degree 3 with circular cross-section.
+    OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_CUBIC_BEZIER           = 1 << 7,
     /// Triangle.
-    OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE                = 1 << 31,
+    OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE                     = 1 << 31,
+    /// Triangle with an applied displacement micromap.
+    OPTIX_PRIMITIVE_TYPE_FLAGS_DISPLACED_MICROMESH_TRIANGLE = 1 << 30,
 } OptixPrimitiveTypeFlags;
 
 /// Curve end cap types, for non-linear curves
@@ -532,8 +860,8 @@ typedef struct OptixBuildInputSphereArray
 {
   /// Pointer to host array of device pointers, one per motion step. Host array size must match number of
   /// motion keys as set in #OptixMotionOptions (or an array of size 1 if OptixMotionOptions::numKeys is set
-  /// to 1). Each per-motion-key device pointer must point to an array of floats (the center points of 
-  /// the spheres). 
+  /// to 1). Each per-motion-key device pointer must point to an array of floats (the center points of
+  /// the spheres).
   const CUdeviceptr* vertexBuffers;
 
   /// Stride between vertices. If set to zero, vertices are assumed to be tightly
@@ -647,7 +975,29 @@ typedef struct OptixBuildInputInstanceArray
     /// Number of elements in #OptixBuildInputInstanceArray::instances.
     unsigned int numInstances;
 
+    /// Only valid for OPTIX_BUILD_INPUT_TYPE_INSTANCE
+    /// Defines the stride between instances. A stride of 0 indicates a tight packing, i.e.,
+    /// stride = sizeof( OptixInstance )
+    unsigned int instanceStride;
 } OptixBuildInputInstanceArray;
+
+/// Instance and instance pointer inputs
+///
+/// \see #OptixRelocateInput::instanceArray
+typedef struct OptixRelocateInputInstanceArray
+{
+    /// Number of elements in #OptixRelocateInputInstanceArray::traversableHandles.
+    /// Must match #OptixBuildInputInstanceArray::numInstances of the source build input.
+    unsigned int numInstances;
+
+    /// These are the traversable handles of the instances (See OptixInstance::traversableHandle)
+    /// These can be used when also relocating the instances.  No updates to
+    /// the bounds are performed.  Use optixAccelBuild to update the bounds.
+    /// 'traversableHandles' may be zero when the traversables are not relocated
+    /// (i.e. relocation of an IAS on the source device).
+    CUdeviceptr traversableHandles;
+
+} OptixRelocateInputInstanceArray;
 
 /// Enum to distinguish the different build input types.
 ///
@@ -694,6 +1044,26 @@ typedef struct OptixBuildInput
     };
 } OptixBuildInput;
 
+/// Relocation inputs.
+///
+/// \see #optixAccelRelocate()
+typedef struct OptixRelocateInput
+{
+    /// The type of the build input to relocate.
+    OptixBuildInputType type;
+
+    union
+    {
+        /// Instance and instance pointer inputs.
+        OptixRelocateInputInstanceArray instanceArray;
+
+        /// Triangle inputs.
+        OptixRelocateInputTriangleArray triangleArray;
+
+        /// Inputs of any of the other types don't require any relocation data.
+    };
+} OptixRelocateInput;
+
 // Some 32-bit tools use this header. This static_assert fails for them because
 // the default enum size is 4 bytes, rather than 8, under 32-bit compilers.
 // This #ifndef allows them to disable the static assert.
@@ -732,6 +1102,11 @@ typedef enum OptixInstanceFlags
     OPTIX_INSTANCE_FLAG_ENFORCE_ANYHIT = 1u << 3,
 
 
+    /// Force 4-state opacity micromaps to behave as 2-state opacity micromaps during traversal.
+    OPTIX_INSTANCE_FLAG_FORCE_OPACITY_MICROMAP_2_STATE = 1u << 4,
+    /// Don't perform opacity micromap query for this instance. GAS must be built with ALLOW_DISABLE_OPACITY_MICROMAPS for this to be valid.
+    /// This flag overrides FORCE_OPACTIY_MIXROMAP_2_STATE instance and ray flags.
+    OPTIX_INSTANCE_FLAG_DISABLE_OPACITY_MICROMAPS = 1u << 5,
 
 } OptixInstanceFlags;
 
@@ -746,9 +1121,9 @@ typedef struct OptixInstance
     /// Application supplied ID. The maximal ID can be queried using OPTIX_DEVICE_PROPERTY_LIMIT_MAX_INSTANCE_ID.
     unsigned int instanceId;
 
-    /// SBT record offset.  Will only be used for instances of geometry acceleration structure (GAS) objects.
-    /// Needs to be set to 0 for instances of instance acceleration structure (IAS) objects. The maximal SBT offset
-    /// can be queried using OPTIX_DEVICE_PROPERTY_LIMIT_MAX_INSTANCE_SBT_OFFSET.
+    /// SBT record offset.
+    /// In a traversable graph with multiple levels of instance acceleration structure (IAS) objects, offsets are summed together.
+    /// The maximal SBT offset can be queried using OPTIX_DEVICE_PROPERTY_LIMIT_MAX_SBT_OFFSET.
     unsigned int sbtOffset;
 
     /// Visibility mask. If rayMask & instanceMask == 0 the instance is culled. The number of available bits can be
@@ -779,8 +1154,10 @@ typedef enum OptixBuildFlags
 
     OPTIX_BUILD_FLAG_ALLOW_COMPACTION = 1u << 1,
 
+    /// This flag is mutually exclusive with OPTIX_BUILD_FLAG_PREFER_FAST_BUILD.
     OPTIX_BUILD_FLAG_PREFER_FAST_TRACE = 1u << 2,
 
+    /// This flag is mutually exclusive with OPTIX_BUILD_FLAG_PREFER_FAST_TRACE.
     OPTIX_BUILD_FLAG_PREFER_FAST_BUILD = 1u << 3,
 
     /// Allow random access to build input vertices
@@ -789,6 +1166,8 @@ typedef enum OptixBuildFlags
     ///     optixGetQuadraticBSplineVertexData
     ///     optixGetCubicBSplineVertexData
     ///     optixGetCatmullRomVertexData
+    ///     optixGetRibbonVertexData
+    ///     optixGetRibbonNormal
     ///     optixGetSphereData
     OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS = 1u << 4,
 
@@ -796,9 +1175,99 @@ typedef enum OptixBuildFlags
     /// See optixGetInstanceTraversableFromIAS
     OPTIX_BUILD_FLAG_ALLOW_RANDOM_INSTANCE_ACCESS = 1u << 5,
 
+    /// Support updating the opacity micromap array and opacity micromap indices on refits.
+    /// May increase AS size and may have a small negative impact on traversal performance.
+    /// If this flag is absent, all opacity micromap inputs must remain unchanged between the initial AS builds and their subsequent refits.
+    OPTIX_BUILD_FLAG_ALLOW_OPACITY_MICROMAP_UPDATE = 1u << 6,
+
+    /// If enabled, any instances referencing this GAS are allowed to disable the opacity micromap test through the DISABLE_OPACITY_MICROMAPS flag instance flag.
+    /// Note that the GAS will not be optimized for the attached opacity micromap Arrays if this flag is set,
+    /// which may result in reduced traversal performance.
+    OPTIX_BUILD_FLAG_ALLOW_DISABLE_OPACITY_MICROMAPS = 1u << 7,
 } OptixBuildFlags;
 
 
+/// Flags defining behavior of opacity micromaps in a opacity micromap array.
+typedef enum OptixOpacityMicromapFlags
+{
+    OPTIX_OPACITY_MICROMAP_FLAG_NONE = 0,
+
+    /// This flag is mutually exclusive with OPTIX_OPACITY_MICROMAP_FLAG_PREFER_FAST_BUILD.
+    OPTIX_OPACITY_MICROMAP_FLAG_PREFER_FAST_TRACE = 1 << 0,
+
+    /// This flag is mutually exclusive with OPTIX_OPACITY_MICROMAP_FLAG_PREFER_FAST_TRACE.
+    OPTIX_OPACITY_MICROMAP_FLAG_PREFER_FAST_BUILD = 1 << 1,
+} OptixOpacityMicromapFlags;
+
+/// Opacity micromap descriptor.
+typedef struct OptixOpacityMicromapDesc
+{
+    /// Byte offset to opacity micromap in data input buffer of opacity micromap array build
+    unsigned int  byteOffset;
+    /// Number of micro-triangles is 4^level. Valid levels are [0, 12]
+    unsigned short subdivisionLevel;
+    /// OptixOpacityMicromapFormat
+    unsigned short format;
+} OptixOpacityMicromapDesc;
+
+/// Opacity micromap histogram entry.
+/// Specifies how many opacity micromaps of a specific type are input to the opacity micromap array build.
+/// Note that while this is similar to OptixOpacityMicromapUsageCount, the histogram entry specifies how many opacity micromaps
+/// of a specific type are combined into a opacity micromap array.
+typedef struct OptixOpacityMicromapHistogramEntry
+{
+    /// Number of opacity micromaps with the format and subdivision level that are input to the opacity micromap array build.
+    unsigned int               count;
+    /// Number of micro-triangles is 4^level. Valid levels are [0, 12].
+    unsigned int               subdivisionLevel;
+    /// Opacity micromap format.
+    OptixOpacityMicromapFormat format;
+} OptixOpacityMicromapHistogramEntry;
+
+/// Inputs to opacity micromap array construction.
+typedef struct OptixOpacityMicromapArrayBuildInput
+{
+    /// Applies to all opacity micromaps in array.
+    unsigned int flags;
+
+    /// 128B aligned base pointer for raw opacity micromap input data.
+    CUdeviceptr inputBuffer;
+
+    /// One OptixOpacityMicromapDesc entry per opacity micromap.
+    /// This device pointer must be a multiple of OPTIX_OPACITY_MICROMAP_DESC_BYTE_ALIGNMENT.
+    CUdeviceptr perMicromapDescBuffer;
+
+    /// Stride between OptixOpacityMicromapDescs in perOmDescBuffer.
+    /// If set to zero, the opacity micromap descriptors are assumed to be tightly packed and the stride is assumed to be sizeof( OptixOpacityMicromapDesc ).
+    /// This stride must be a multiple of OPTIX_OPACITY_MICROMAP_DESC_BYTE_ALIGNMENT.
+    unsigned int perMicromapDescStrideInBytes;
+
+    /// Number of OptixOpacityMicromapHistogramEntry.
+    unsigned int numMicromapHistogramEntries;
+    /// Histogram over opacity micromaps of input format and subdivision combinations.
+    /// Counts of entries with equal format and subdivision combination (duplicates) are added together.
+    const OptixOpacityMicromapHistogramEntry* micromapHistogramEntries;
+} OptixOpacityMicromapArrayBuildInput;
+
+/// Conservative memory requirements for building a opacity/displacement micromap array
+typedef struct OptixMicromapBufferSizes
+{
+    size_t outputSizeInBytes;
+    size_t tempSizeInBytes;
+} OptixMicromapBufferSizes;
+
+/// Buffer inputs for opacity/displacement micromap array builds.
+typedef struct OptixMicromapBuffers
+{
+    /// Output buffer
+    CUdeviceptr output;
+    /// Output buffer size
+    size_t outputSizeInBytes;
+    /// Temp buffer
+    CUdeviceptr temp;
+    /// Temp buffer size
+    size_t tempSizeInBytes;
+} OptixMicromapBuffers;
 
 
 /// Enum to specify the acceleration build operation.
@@ -843,10 +1312,10 @@ typedef struct OptixMotionOptions
     /// Combinations of #OptixMotionFlags
     unsigned short flags;
 
-    /// Point in time where motion starts.
+    /// Point in time where motion starts. Must be lesser than timeEnd.
     float timeBegin;
 
-    /// Point in time where motion ends.
+    /// Point in time where motion ends. Must be greater than timeBegin.
     float timeEnd;
 } OptixMotionOptions;
 
@@ -862,6 +1331,8 @@ typedef struct OptixAccelBuildOptions
     /// of a full build with OPTIX_BUILD_FLAG_ALLOW_UPDATE set and using the same number of
     /// primitives.  It is updated incrementally to reflect the current position of the
     /// primitives.
+    /// If a BLAS has been built with OPTIX_BUILD_FLAG_ALLOW_OPACITY_MICROMAP_UPDATE, new opacity micromap arrays
+    /// and opacity micromap indices may be provided to the refit.
     OptixBuildOperation operation;
 
     /// Options for motion.
@@ -914,14 +1385,15 @@ typedef struct OptixAccelEmitDesc
     OptixAccelPropertyType type;
 } OptixAccelEmitDesc;
 
-/// Used to store information related to relocation of acceleration structures.
+/// Used to store information related to relocation of optix data structures.
 ///
-/// \see #optixAccelGetRelocationInfo(), #optixAccelCheckRelocationCompatibility(), #optixAccelRelocate()
-typedef struct OptixAccelRelocationInfo
+/// \see #optixOpacityMicromapArrayGetRelocationInfo(), #optixOpacityMicromapArrayRelocate(),
+/// #optixAccelGetRelocationInfo(), #optixAccelRelocate(), #optixCheckRelocationCompatibility()
+typedef struct OptixRelocationInfo
 {
     /// Opaque data, used internally, should not be modified
     unsigned long long info[4];
-} OptixAccelRelocationInfo;
+} OptixRelocationInfo;
 
 /// Static transform
 ///
@@ -973,7 +1445,8 @@ typedef struct OptixMatrixMotionTransform
     /// The traversable that is transformed by this transformation
     OptixTraversableHandle child;
 
-    /// The motion options for this transformation
+    /// The motion options for this transformation.
+    /// Must have at least two motion keys.
     OptixMotionOptions motionOptions;
 
     /// Padding to make the transformation 16 byte aligned
@@ -1056,6 +1529,7 @@ typedef struct OptixSRTMotionTransform
     OptixTraversableHandle child;
 
     /// The motion options for this transformation
+    /// Must have at least two motion keys.
     OptixMotionOptions motionOptions;
 
     /// Padding to make the SRT data 16 byte aligned
@@ -1088,15 +1562,17 @@ typedef enum OptixTraversableType
 /// \see #OptixImage2D::format
 typedef enum OptixPixelFormat
 {
+    OPTIX_PIXEL_FORMAT_HALF1  = 0x220a,               ///< one half
     OPTIX_PIXEL_FORMAT_HALF2  = 0x2207,               ///< two halfs, XY
     OPTIX_PIXEL_FORMAT_HALF3  = 0x2201,               ///< three halfs, RGB
     OPTIX_PIXEL_FORMAT_HALF4  = 0x2202,               ///< four halfs, RGBA
+    OPTIX_PIXEL_FORMAT_FLOAT1 = 0x220b,               ///< one float
     OPTIX_PIXEL_FORMAT_FLOAT2 = 0x2208,               ///< two floats, XY
     OPTIX_PIXEL_FORMAT_FLOAT3 = 0x2203,               ///< three floats, RGB
     OPTIX_PIXEL_FORMAT_FLOAT4 = 0x2204,               ///< four floats, RGBA
     OPTIX_PIXEL_FORMAT_UCHAR3 = 0x2205,               ///< three unsigned chars, RGB
     OPTIX_PIXEL_FORMAT_UCHAR4 = 0x2206,               ///< four unsigned chars, RGBA
-    OPTIX_PIXEL_FORMAT_INTERNAL_GUIDE_LAYER = 0x2209, ///< internal format
+    OPTIX_PIXEL_FORMAT_INTERNAL_GUIDE_LAYER = 0x2209  ///< internal format
 } OptixPixelFormat;
 
 /// Image descriptor used by the denoiser.
@@ -1115,7 +1591,7 @@ typedef struct OptixImage2D
     /// Stride between subsequent pixels of the image (in bytes).
     /// If set to 0, dense packing (no gaps) is assumed.
     /// For pixel format OPTIX_PIXEL_FORMAT_INTERNAL_GUIDE_LAYER it must be set to
-    /// at least OptixDenoiserSizes::internalGuideLayerSizeInBytes.
+    /// OptixDenoiserSizes::internalGuideLayerPixelSizeInBytes.
     unsigned int pixelStrideInBytes;
     /// Pixel format.
     OptixPixelFormat format;
@@ -1146,8 +1622,20 @@ typedef enum OptixDenoiserModelKind
 
     /// Use the built-in model appropriate for high dynamic range input and support for AOVs, upscaling 2x,
     /// temporally stable
-    OPTIX_DENOISER_MODEL_KIND_TEMPORAL_UPSCALE2X = 0x2328,
+    OPTIX_DENOISER_MODEL_KIND_TEMPORAL_UPSCALE2X = 0x2328
 } OptixDenoiserModelKind;
+
+/// Alpha denoising mode
+///
+/// \see #optixDenoiserCreate()
+typedef enum OptixDenoiserAlphaMode
+{
+    /// Copy alpha (if present) from input layer, no denoising.
+    OPTIX_DENOISER_ALPHA_MODE_COPY = 0,
+
+    /// Denoise alpha.
+    OPTIX_DENOISER_ALPHA_MODE_DENOISE = 1
+} OptixDenoiserAlphaMode;
 
 /// Options used by the denoiser
 ///
@@ -1159,6 +1647,9 @@ typedef struct OptixDenoiserOptions
 
     // if nonzero, normal image must be given in OptixDenoiserGuideLayer
     unsigned int guideNormal;
+
+    /// alpha denoise mode
+    OptixDenoiserAlphaMode denoiseAlpha;
 } OptixDenoiserOptions;
 
 /// Guide layer for the denoiser
@@ -1166,18 +1657,44 @@ typedef struct OptixDenoiserOptions
 /// \see #optixDenoiserInvoke()
 typedef struct OptixDenoiserGuideLayer
 {
-    // albedo/bsdf image
+    // image with three components: R, G, B.
     OptixImage2D  albedo;
 
-    // normal vector image (2d or 3d pixel format)
+    // image with two or three components: X, Y, Z.
+    // (X, Y) camera space for OPTIX_DENOISER_MODEL_KIND_LDR, OPTIX_DENOISER_MODEL_KIND_HDR models.
+    // (X, Y, Z) world space, all other models.
     OptixImage2D  normal;
 
-    // 2d flow image, pixel flow from previous to current frame for each pixel
+    // image with two components: X, Y.
+    // pixel movement from previous to current frame for each pixel in screen space.
     OptixImage2D  flow;
 
+    // Internal images used in temporal AOV denoising modes,
+    // pixel format OPTIX_PIXEL_FORMAT_INTERNAL_GUIDE_LAYER.
     OptixImage2D  previousOutputInternalGuideLayer;
     OptixImage2D  outputInternalGuideLayer;
+
+    // image with a single component value that specifies how trustworthy the flow vector at x,y position in
+    // OptixDenoiserGuideLayer::flow is. Range 0..1 (low->high trustworthiness).
+    // Ignored if data pointer in the image is zero.
+    OptixImage2D flowTrustworthiness;
+
 } OptixDenoiserGuideLayer;
+
+/// AOV type used by the denoiser
+///
+typedef enum OptixDenoiserAOVType
+{
+    /// Unspecified AOV type
+    OPTIX_DENOISER_AOV_TYPE_NONE       = 0,
+
+    OPTIX_DENOISER_AOV_TYPE_BEAUTY     = 0x7000,
+    OPTIX_DENOISER_AOV_TYPE_SPECULAR   = 0x7001,
+    OPTIX_DENOISER_AOV_TYPE_REFLECTION = 0x7002,
+    OPTIX_DENOISER_AOV_TYPE_REFRACTION = 0x7003,
+    OPTIX_DENOISER_AOV_TYPE_DIFFUSE    = 0x7004
+
+} OptixDenoiserAOVType;
 
 /// Input/Output layers for the denoiser
 ///
@@ -1192,6 +1709,9 @@ typedef struct OptixDenoiserLayer
 
     // denoised output for given input
     OptixImage2D  output;
+
+    // Type of AOV, used in temporal AOV modes as a hint to improve image quality.
+    OptixDenoiserAOVType type;
 } OptixDenoiserLayer;
 
 /// Various parameters used by the denoiser
@@ -1199,26 +1719,13 @@ typedef struct OptixDenoiserLayer
 /// \see #optixDenoiserInvoke()
 /// \see #optixDenoiserComputeIntensity()
 /// \see #optixDenoiserComputeAverageColor()
-typedef enum OptixDenoiserAlphaMode
-{
-    /// Copy alpha (if present) from input layer, no denoising.
-    OPTIX_DENOISER_ALPHA_MODE_COPY = 0,
 
-    /// Denoise alpha separately. With AOV model kinds, treat alpha like an AOV.
-    OPTIX_DENOISER_ALPHA_MODE_ALPHA_AS_AOV = 1,
-
-    /// With AOV model kinds, full denoise pass with alpha.
-    /// This is slower than OPTIX_DENOISER_ALPHA_MODE_ALPHA_AS_AOV.
-    OPTIX_DENOISER_ALPHA_MODE_FULL_DENOISE_PASS = 2
-} OptixDenoiserAlphaMode;
 typedef struct OptixDenoiserParams
 {
-    /// alpha denoise mode
-    OptixDenoiserAlphaMode denoiseAlpha;
-
     /// average log intensity of input image (default null pointer). points to a single float.
-    /// with the default (null pointer) denoised results will not be optimal for very dark or
-    /// bright input images.
+    /// if set to null, autoexposure will be calculated automatically for the input image.
+    /// Should be set to average log intensity of the entire image at least if tiling is used to
+    /// get consistent autoexposure for all tiles.
     CUdeviceptr  hdrIntensity;
 
     /// blend factor.
@@ -1229,8 +1736,9 @@ typedef struct OptixDenoiserParams
 
     /// this parameter is used when the OPTIX_DENOISER_MODEL_KIND_AOV model kind is set.
     /// average log color of input image, separate for RGB channels (default null pointer).
-    /// points to three floats. with the default (null pointer) denoised results will not be
-    /// optimal.
+    /// points to three floats.
+    /// if set to null, average log color will be calculated automatically. See hdrIntensity for tiling,
+    /// this also applies here.
     CUdeviceptr  hdrAverageColor;
 
     /// In temporal modes this parameter must be set to 1 if previous layers (e.g.
@@ -1325,6 +1833,8 @@ typedef enum OptixRayFlags
     /// OPTIX_RAY_FLAG_ENFORCE_ANYHIT, OPTIX_RAY_FLAG_DISABLE_ANYHIT.
     OPTIX_RAY_FLAG_CULL_ENFORCED_ANYHIT = 1u << 7,
 
+    /// Force 4-state opacity micromaps to behave as 2-state opactiy micromaps during traversal.
+    OPTIX_RAY_FLAG_FORCE_OPACITY_MICROMAP_2_STATE = 1u << 10,
 } OptixRayFlags;
 
 /// Transform
@@ -1398,7 +1908,7 @@ typedef enum OptixCompileDebugLevel
 
 /// Module compilation state.
 ///
-/// \see #optixModuleGetCompilationState(), #optixModuleCreateFromPTXWithTasks()
+/// \see #optixModuleGetCompilationState(), #optixModuleCreateWithTasks()
 typedef enum OptixModuleCompileState
 {
     /// No OptixTask objects have started
@@ -1441,10 +1951,10 @@ typedef enum OptixModuleCompileState
 ///
 /// The pipelineParamOffset and sizeInBytes must be within the bounds of the
 /// pipelineParams variable. OPTIX_ERROR_INVALID_VALUE will be returned from
-/// optixModuleCreateFromPTX otherwise.
+/// optixModuleCreate otherwise.
 ///
 /// If more than one bound value overlaps or the size of a bound value is equal to 0,
-/// an OPTIX_ERROR_INVALID_VALUE will be returned from optixModuleCreateFromPTX.
+/// an OPTIX_ERROR_INVALID_VALUE will be returned from optixModuleCreate.
 ///
 /// The same set of bound values do not need to be used for all modules in a pipeline, but
 /// overlapping values between modules must have the same value.
@@ -1525,7 +2035,7 @@ typedef struct OptixPayloadType
 
 /// Compilation options for module
 ///
-/// \see #optixModuleCreateFromPTX()
+/// \see #optixModuleCreate()
 typedef struct OptixModuleCompileOptions
 {
     /// Maximum number of registers allowed when compiling to SASS.
@@ -1549,7 +2059,7 @@ typedef struct OptixModuleCompileOptions
     unsigned int numPayloadTypes;
 
     /// Points to host array of payload type definitions, size must match numPayloadTypes
-    OptixPayloadType *payloadTypes;
+    const OptixPayloadType* payloadTypes;
 
 } OptixModuleCompileOptions;
 
@@ -1677,7 +2187,7 @@ typedef struct OptixProgramGroupOptions
     /// for which all programs in the group are available.
     /// If the payload type could not be deduced uniquely
     /// optixProgramGroupCreate returns OPTIX_ERROR_PAYLOAD_TYPE_RESOLUTION_FAILED.
-    OptixPayloadType* payloadType;
+    const OptixPayloadType* payloadType;
 } OptixProgramGroupOptions;
 
 /// The following values are used to indicate which exception was thrown.
@@ -1691,96 +2201,7 @@ typedef enum OptixExceptionCodes
     /// no exception details.
     OPTIX_EXCEPTION_CODE_TRACE_DEPTH_EXCEEDED = -2,
 
-    /// The traversal depth is exceeded.
-    /// Exception details:
-    ///     optixGetTransformListSize()
-    ///     optixGetTransformListHandle()
-    OPTIX_EXCEPTION_CODE_TRAVERSAL_DEPTH_EXCEEDED = -3,
 
-    /// Traversal encountered an invalid traversable type.
-    /// Exception details:
-    ///     optixGetTransformListSize()
-    ///     optixGetTransformListHandle()
-    ///     optixGetExceptionInvalidTraversable()
-    OPTIX_EXCEPTION_CODE_TRAVERSAL_INVALID_TRAVERSABLE = -5,
-
-    /// The miss SBT record index is out of bounds
-    /// A miss SBT record index is valid within the range [0, OptixShaderBindingTable::missRecordCount) (See optixLaunch)
-    /// Exception details:
-    ///     optixGetExceptionInvalidSbtOffset()
-    OPTIX_EXCEPTION_CODE_TRAVERSAL_INVALID_MISS_SBT = -6,
-
-    /// The traversal hit SBT record index out of bounds.
-    ///
-    /// A traversal hit SBT record index is valid within the range [0, OptixShaderBindingTable::hitgroupRecordCount) (See optixLaunch)
-    /// The following formula relates the
-    //      sbt-index (See optixGetExceptionInvalidSbtOffset),
-    //      sbt-instance-offset (See OptixInstance::sbtOffset),
-    ///     sbt-geometry-acceleration-structure-index (See optixGetSbtGASIndex),
-    ///     sbt-stride-from-trace-call and sbt-offset-from-trace-call (See optixTrace)
-    ///
-    /// sbt-index = sbt-instance-offset + (sbt-geometry-acceleration-structure-index * sbt-stride-from-trace-call) + sbt-offset-from-trace-call
-    ///
-    /// Exception details:
-    ///     optixGetTransformListSize()
-    ///     optixGetTransformListHandle()
-    ///     optixGetExceptionInvalidSbtOffset()
-    ///     optixGetSbtGASIndex()
-    OPTIX_EXCEPTION_CODE_TRAVERSAL_INVALID_HIT_SBT = -7,
-
-    /// The shader encountered an unsupported primitive type (See OptixPipelineCompileOptions::usesPrimitiveTypeFlags).
-    /// no exception details.
-    OPTIX_EXCEPTION_CODE_UNSUPPORTED_PRIMITIVE_TYPE = -8,
-
-    /// The shader encountered a call to optixTrace with at least
-    /// one of the float arguments being inf or nan, or the tmin argument is negative.
-    /// Exception details:
-    ///     optixGetExceptionInvalidRay()
-    OPTIX_EXCEPTION_CODE_INVALID_RAY = -9,
-
-    /// The shader encountered a call to either optixDirectCall or optixCallableCall
-    /// where the argument count does not match the parameter count of the callable
-    /// program which is called.
-    /// Exception details:
-    ///     optixGetExceptionParameterMismatch
-    OPTIX_EXCEPTION_CODE_CALLABLE_PARAMETER_MISMATCH = -10,
-
-    /// The invoked builtin IS does not match the current GAS
-    OPTIX_EXCEPTION_CODE_BUILTIN_IS_MISMATCH = -11,
-
-    /// Tried to call a callable program using an SBT offset that is larger
-    /// than the number of passed in callable SBT records.
-    /// Exception details:
-    ///     optixGetExceptionInvalidSbtOffset()
-    OPTIX_EXCEPTION_CODE_CALLABLE_INVALID_SBT = -12,
-
-    /// Tried to call a direct callable using an SBT offset of a record that
-    /// was built from a program group that did not include a direct callable.
-    OPTIX_EXCEPTION_CODE_CALLABLE_NO_DC_SBT_RECORD = -13,
-
-    /// Tried to call a continuation callable using an SBT offset of a record
-    /// that was built from a program group that did not include a continuation callable.
-    OPTIX_EXCEPTION_CODE_CALLABLE_NO_CC_SBT_RECORD = -14,
-
-    /// Tried to directly traverse a single gas while single gas traversable graphs are not enabled
-    ///   (see OptixTraversableGraphFlags::OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS).
-    /// Exception details:
-    ///     optixGetTransformListSize()
-    ///     optixGetTransformListHandle()
-    ///     optixGetExceptionInvalidTraversable()
-    OPTIX_EXCEPTION_CODE_UNSUPPORTED_SINGLE_LEVEL_GAS = -15,
-
-    /// argument passed to an optix call is
-    /// not within an acceptable range of values.
-    OPTIX_EXCEPTION_CODE_INVALID_VALUE_ARGUMENT_0 = -16,
-    OPTIX_EXCEPTION_CODE_INVALID_VALUE_ARGUMENT_1 = -17,
-    OPTIX_EXCEPTION_CODE_INVALID_VALUE_ARGUMENT_2 = -18,
-
-    /// Tried to access data on an AS without random data access support (See OptixBuildFlags).
-    OPTIX_EXCEPTION_CODE_UNSUPPORTED_DATA_ACCESS = -32,
-
-    /// The program payload type doesn't match the trace payload type.
-    OPTIX_EXCEPTION_CODE_PAYLOAD_TYPE_MISMATCH = -33,
 } OptixExceptionCodes;
 
 /// Exception flags.
@@ -1792,24 +2213,32 @@ typedef enum OptixExceptionFlags
     OPTIX_EXCEPTION_FLAG_NONE = 0,
 
     /// Enables exceptions check related to the continuation stack.
+    /// This flag should be used when the application handles stack overflows
+    /// in a user exception program as part of the normal flow of execution.
+    /// For catching overflows during debugging and development, the
+    /// device context validation mode should be used instead.
+    /// \see OptixDeviceContextValidationMode
     OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW = 1u << 0,
 
     /// Enables exceptions check related to trace depth.
+    /// This flag should be used when the application handles trace depth overflows
+    /// in a user exception program as part of the normal flow of execution.
+    /// For catching overflows during debugging and development, the
+    /// device context validation mode should be used instead.
+    /// \see OptixDeviceContextValidationMode
     OPTIX_EXCEPTION_FLAG_TRACE_DEPTH = 1u << 1,
 
     /// Enables user exceptions via optixThrowException(). This flag must be specified for all modules in a pipeline
     /// if any module calls optixThrowException().
     OPTIX_EXCEPTION_FLAG_USER = 1u << 2,
 
-    /// Enables various exceptions check related to traversal.
-    OPTIX_EXCEPTION_FLAG_DEBUG = 1u << 3
 } OptixExceptionFlags;
 
 /// Compilation options for all modules of a pipeline.
 ///
 /// Similar to #OptixModuleCompileOptions, but these options here need to be equal for all modules of a pipeline.
 ///
-/// \see #optixModuleCreateFromPTX(), #optixPipelineCreate()
+/// \see #optixModuleCreate(), #optixPipelineCreate()
 typedef struct OptixPipelineCompileOptions
 {
     /// Boolean value indicating whether motion blur could be used
@@ -1838,6 +2267,8 @@ typedef struct OptixPipelineCompileOptions
     /// Setting to zero corresponds to enabling OPTIX_PRIMITIVE_TYPE_FLAGS_CUSTOM and OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE.
     unsigned int usesPrimitiveTypeFlags;
 
+    /// Boolean value indicating whether opacity micromaps could be used
+    int allowOpacityMicromaps;
 } OptixPipelineCompileOptions;
 
 /// Link options for a pipeline
@@ -1848,9 +2279,6 @@ typedef struct OptixPipelineLinkOptions
     /// Maximum trace recursion depth. 0 means a ray generation program can be
     /// launched, but can't trace any rays. The maximum allowed value is 31.
     unsigned int maxTraceDepth;
-
-    /// Generate debug information.
-    OptixCompileDebugLevel debugLevel;
 
 } OptixPipelineLinkOptions;
 
@@ -1947,40 +2375,8 @@ typedef struct OptixBuiltinISOptions
     unsigned int              curveEndcapFlags;
 } OptixBuiltinISOptions;
 
-#if defined( __CUDACC__ )
-/// Describes the ray that was passed into \c optixTrace() which caused an exception with
-/// exception code OPTIX_EXCEPTION_CODE_INVALID_RAY.
-///
-/// \see #optixGetExceptionInvalidRay()
-typedef struct OptixInvalidRayExceptionDetails
-{
-    float3 origin;
-    float3 direction;
-    float  tmin;
-    float  tmax;
-    float  time;
-} OptixInvalidRayExceptionDetails;
-
-/// Describes the details of a call to a callable program which caused an exception with
-/// exception code OPTIX_EXCEPTION_CODE_CALLABLE_PARAMETER_MISMATCH,
-/// Note that OptiX packs the parameters into individual 32 bit values, so the number of
-/// expected and passed values may not correspond to the number of arguments passed into
-/// optixDirectCall or optixContinuationCall, or the number parameters in the definition
-/// of the function that is called.
-typedef struct OptixParameterMismatchExceptionDetails
-{
-    /// Number of 32 bit values expected by the callable program
-    unsigned int expectedParameterCount;
-    /// Number of 32 bit values that were passed to the callable program
-    unsigned int passedArgumentCount;
-    /// The offset of the SBT entry of the callable program relative to OptixShaderBindingTable::callablesRecordBase
-    unsigned int sbtIndex;
-    /// Pointer to a string that holds the name of the callable program that was called
-    char*        callableName;
-} OptixParameterMismatchExceptionDetails;
-#endif
 
 
-/*@}*/  // end group optix_types
+/**@}*/  // end group optix_types
 
-#endif  // __optix_optix_7_types_h__
+#endif  // OPTIX_OPTIX_TYPES_H
