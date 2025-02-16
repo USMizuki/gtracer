@@ -17,6 +17,8 @@ extern "C" __global__ void __raygen__rg() {
 	glm::vec3 ray_d = params.ray_directions[idx.x];
 	glm::vec3 ray_origin;
 	glm::vec3 C = glm::vec3(0.0f, 0.0f, 0.0f), C_final = params.colors[idx.x], grad_colors = params.grad_colors[idx.x];
+	glm::vec3 N = glm::vec3(0.0f, 0.0f, 0.0f), N_final = params.rendered_normal[idx.x], grad_rendered_normal = params.grad_rendered_normal[idx.x];
+	glm::vec3 PN = glm::vec3(0.0f, 0.0f, 0.0f), PN_final = params.rendered_pred_normal[idx.x], grad_rendered_pred_normal = params.grad_rendered_pred_normal[idx.x];
 	float D = 0.0f, D_final = params.depths[idx.x], grad_depths = params.grad_depths[idx.x];
 	float O = 0.0f, grad_alpha = params.grad_alpha[idx.x];
 
@@ -83,21 +85,32 @@ extern "C" __global__ void __raygen__rg() {
 
 				glm::vec3 c = computeColorFromSH_forward(params.deg, ray_d, params.shs + gs_idx * params.max_coeffs);
 
+				glm::vec3 n = (params.normal + gs_idx * params.max_coeffs)[0];
+				glm::vec3 pn = (params.pred_normal + gs_idx * params.max_coeffs)[0];
+
 				float w = T * alpha;
 				C += w * c;
 				D += w * d;
 				O += w;
+				N += w * n;
+				PN += w * pn;
 
 				T *= (1 - alpha);
 
 				glm::vec3 dL_dc = grad_colors * w;
+				glm::vec3 dL_dn = grad_rendered_normal * w;
+				glm::vec3 dL_dpn = grad_rendered_pred_normal * w;
 				float dL_dd = grad_depths * w;
 				float dL_dalpha = (
 					glm::dot(grad_colors, T * c - (C_final - C)) +
 					grad_depths * (T * d - (D_final - D)) + 
-					grad_alpha * (1 - O_final)
+					grad_alpha * (1 - O_final) +
+					glm::dot(grad_rendered_normal, T * n - (N_final - N)) +
+					glm::dot(grad_rendered_pred_normal, T * pn - (PN_final - PN))
 				) / max(1e-6f, 1 - alpha);
 				computeColorFromSH_backward(params.deg, ray_d, params.shs + gs_idx * params.max_coeffs, dL_dc, params.grad_shs + gs_idx * params.max_coeffs);
+				atomic_add((float*)(params.grad_normal + gs_idx * params.max_coeffs), dL_dn);
+				atomic_add((float*)(params.grad_pred_normal + gs_idx * params.max_coeffs), dL_dpn);
 				float dL_do = dL_dalpha * G;
 				float dL_dG = dL_dalpha * o;
 				glm::vec3 dL_dpg = -dL_dG * G * p_g;

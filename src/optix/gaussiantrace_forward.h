@@ -14,9 +14,13 @@ struct Gaussiantrace_forward {
 		const float* opacity;
 		const glm::mat3x3* SinvR;
 		const glm::vec3* shs;
+		const glm::vec3* normal;
+		const glm::vec3* pred_normal;
 		glm::vec3* colors;
 		float* depths;
 		float* alpha;
+		glm::vec3* rendered_normal;
+		glm::vec3* rendered_pred_normal;
 		float alpha_min;
 		float transmittance_min;
 		int deg;

@@ -177,15 +177,15 @@ public:
 
     void gaussian_trace_forward(
 		uint32_t n_elements, const glm::vec3* rays_o, const glm::vec3* rays_d, const int* gs_idxs, 
-		const glm::vec3* means3D, const float* opacity, const glm::mat3x3* SinvR, const glm::vec3* shs, 
-		glm::vec3* colors, float* depth, float* alpha, 
+		const glm::vec3* means3D, const float* opacity, const glm::mat3x3* SinvR, const glm::vec3* shs, const glm::vec3* normal, const glm::vec3* pred_normal,
+		glm::vec3* colors, float* depth, float* alpha, glm::vec3* rendered_normal, glm::vec3* rendered_pred_normal,
 		const float alpha_min, const float transmittance_min, const int deg, const int max_coeffs, cudaStream_t stream
 	) override {
         m_optix.gaussiantrace_forward->invoke(
 			{
 				rays_o, rays_d, gs_idxs, 
-				means3D, opacity, SinvR, shs, 
-				colors, depth, alpha, 
+				means3D, opacity, SinvR, shs, normal, pred_normal,
+				colors, depth, alpha, rendered_normal, rendered_pred_normal,
 				alpha_min, transmittance_min, deg, max_coeffs, m_optix.gas->handle()
 			}, 
 			{n_elements, 1, 1}, 
@@ -194,19 +194,19 @@ public:
 
 	void gaussian_trace_backward(
 		uint32_t n_elements, const glm::vec3* rays_o, const glm::vec3* rays_d, const int* gs_idxs, 
-		const glm::vec3* means3D, const float* opacity, const glm::mat3x3* SinvR, const glm::vec3* shs, 
-		const glm::vec3* colors, const float* depth, const float* alpha, 
-		glm::vec3* grad_rays_d, glm::vec3* grad_means3D, float* grad_opacity, glm::mat3x3* grad_SinvR, glm::vec3* grad_shs, 
-        const glm::vec3* grad_colors, const float* grad_depth, const float* grad_alpha,
+		const glm::vec3* means3D, const float* opacity, const glm::mat3x3* SinvR, const glm::vec3* shs, const glm::vec3* normal, const glm::vec3* pred_normal,
+		const glm::vec3* colors, const float* depth, const float* alpha, const glm::vec3* rendered_normal, const glm::vec3* rendered_pred_normal,
+		glm::vec3* grad_rays_d, glm::vec3* grad_means3D, float* grad_opacity, glm::mat3x3* grad_SinvR, glm::vec3* grad_shs, glm::vec3* grad_normal, glm::vec3* grad_pred_normal,
+        const glm::vec3* grad_colors, const float* grad_depth, const float* grad_alpha, const glm::vec3* grad_rendered_normal, const glm::vec3* grad_rendered_pred_normal,
 		const float alpha_min, const float transmittance_min, const int deg, const int max_coeffs, cudaStream_t stream
 	) override {
         m_optix.gaussiantrace_backward->invoke(
 			{
 				rays_o, rays_d, gs_idxs, 
-				means3D, opacity, SinvR, shs, 
-				colors, depth, alpha, 
-				grad_rays_d, grad_means3D, grad_opacity, grad_SinvR, grad_shs, 
-				grad_colors, grad_depth, grad_alpha,
+				means3D, opacity, SinvR, shs, normal, pred_normal,
+				colors, depth, alpha, rendered_normal, rendered_pred_normal,
+				grad_rays_d, grad_means3D, grad_opacity, grad_SinvR, grad_shs, grad_normal, grad_pred_normal,
+				grad_colors, grad_depth, grad_alpha, grad_rendered_normal, grad_rendered_pred_normal,
 				alpha_min, transmittance_min, deg, max_coeffs, m_optix.gas->handle()
 			}, 
 			{n_elements, 1, 1}, 

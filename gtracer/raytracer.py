@@ -5,13 +5,15 @@ from gtracer import _C
 
 class _GaussianTrace(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, bvh, rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, alpha_min, transmittance_min, deg):    
+    def forward(ctx, bvh, rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, normal, pred_normal, alpha_min, transmittance_min, deg):    
         colors = torch.zeros_like(rays_o)
         depth = torch.zeros_like(rays_o[:, 0])
         alpha = torch.zeros_like(rays_o[:, 0])
+        rendered_normal = torch.zeros_like(rays_o)
+        rendered_pred_normal = torch.zeros_like(rays_o)
         bvh.trace_forward(
-            rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, 
-            colors, depth, alpha, 
+            rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, normal, pred_normal,
+            colors, depth, alpha, rendered_normal, rendered_pred_normal,
             alpha_min, transmittance_min, deg,
         )
         
@@ -20,23 +22,25 @@ class _GaussianTrace(torch.autograd.Function):
         ctx.transmittance_min = transmittance_min
         ctx.deg = deg
         ctx.bvh = bvh
-        ctx.save_for_backward(rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, colors, depth, alpha)
-        return colors, depth, alpha
+        ctx.save_for_backward(rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, normal, colors, depth, alpha, rendered_normal, rendered_pred_normal)
+        return colors, depth, alpha, rendered_normal, rendered_pred_normal
 
     @staticmethod
-    def backward(ctx, grad_out_color, grad_out_depth, grad_out_alpha):
-        rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, colors, depth, alpha = ctx.saved_tensors
+    def backward(ctx, grad_out_color, grad_out_depth, grad_out_alpha, grad_out_rendered_normal, grad_out_rendered_pred_normal):
+        rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, normal, colors, depth, alpha, rendered_normal = ctx.saved_tensors
         grad_rays_d = torch.zeros_like(rays_d)
         grad_means3D = torch.zeros_like(means3D)
         grad_opacity = torch.zeros_like(opacity)
         grad_SinvR = torch.zeros_like(SinvR)
         grad_shs = torch.zeros_like(shs)
+        grad_normal = torch.zeros_like(normal)
+        grad_pred_normal = torch.zeros_like(pred_normal)
         
         ctx.bvh.trace_backward(
-            rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, 
-            colors, depth, alpha, 
-            grad_rays_d, grad_means3D, grad_opacity, grad_SinvR, grad_shs,
-            grad_out_color, grad_out_depth, grad_out_alpha,
+            rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, normal, pred_normal,
+            colors, depth, alpha, rendered_normal, rendered_pred_normal,
+            grad_rays_d, grad_means3D, grad_opacity, grad_SinvR, grad_shs, grad_normal, grad_pred_normal,
+            grad_out_color, grad_out_depth, grad_out_alpha, grad_out_rendered_normal, grad_out_rendered_pred_normal,
             ctx.alpha_min, ctx.transmittance_min, ctx.deg,
         )
         grads = (
@@ -48,6 +52,8 @@ class _GaussianTrace(torch.autograd.Function):
             grad_opacity,
             grad_SinvR,
             grad_shs,
+            grad_normal,
+            grad_pred_normal,
             None,
             None,
             None,
@@ -71,7 +77,7 @@ class GaussianTracer():
         self.gs_idxs = gs_idxs.int()
         self.impl.update_bvh(vertices_b[faces_b])
 
-    def trace(self, rays_o, rays_d, means3D, opacity, SinvR, shs, alpha_min, deg=3):
+    def trace(self, rays_o, rays_d, means3D, opacity, SinvR, shs, normal, pred_normal, alpha_min, deg=3):
         rays_o = rays_o.contiguous()
         rays_d = rays_d.contiguous()
 
@@ -79,10 +85,12 @@ class GaussianTracer():
         rays_o = rays_o.view(-1, 3)
         rays_d = rays_d.view(-1, 3)
 
-        colors, depth, alpha = _GaussianTrace.apply(self.impl, rays_o, rays_d, self.gs_idxs, means3D, opacity, SinvR, shs, alpha_min, self.transmittance_min, deg)
+        colors, depth, alpha, rendered_normal, rendered_pred_normal = _GaussianTrace.apply(self.impl, rays_o, rays_d, self.gs_idxs, means3D, opacity, SinvR, shs, normal, pred_normal, alpha_min, self.transmittance_min, deg)
 
         colors = colors.view(*prefix, 3)
         depth = depth.view(*prefix)
         alpha = alpha.view(*prefix)
+        rendered_normal = rendered_normal.view(*prefix, 3)
+        rendered_pred_normal = rendered_pred_normal.view(*prefix, 3)
         
-        return colors, depth, alpha
+        return colors, depth, alpha, rendered_normal, rendered_pred_normal

@@ -17,6 +17,8 @@ extern "C" __global__ void __raygen__rg() {
 	glm::vec3 ray_origin;
 
 	glm::vec3 C = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 N = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 PN = glm::vec3(0.0f, 0.0f, 0.0f);
 	float D = 0.0f, O = 0.0f, T = 1.0f, t_start = 0.0f, t_curr = 0.0f;
 
 	HitInfo hitArray[MAX_BUFFER_SIZE];
@@ -74,11 +76,16 @@ extern "C" __global__ void __raygen__rg() {
 				if (alpha<params.alpha_min) continue;
 
 				glm::vec3 c = computeColorFromSH_forward(params.deg, ray_d, params.shs + gs_idx * params.max_coeffs);
+				
+				glm::vec3 n = (params.normal + gs_idx * params.max_coeffs)[0];
+				glm::vec3 pn = (params.pred_normal + gs_idx * params.max_coeffs)[0];
 
 				float w = T * alpha;
 				C += w * c;
 				D += w * d;
 				O += w;
+				N += w * n;
+				PN += w * pn;
 
 				T *= (1 - alpha);
 
@@ -97,6 +104,8 @@ extern "C" __global__ void __raygen__rg() {
 	params.colors[idx.x] = C;
 	params.depths[idx.x] = D;
 	params.alpha[idx.x] = O;
+	params.rendered_normal[idx.x] = N;
+	params.rendered_pred_normal[idx.x] = PN;
 }
 
 extern "C" __global__ void __miss__ms() {
