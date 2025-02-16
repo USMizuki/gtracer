@@ -22,12 +22,12 @@ class _GaussianTrace(torch.autograd.Function):
         ctx.transmittance_min = transmittance_min
         ctx.deg = deg
         ctx.bvh = bvh
-        ctx.save_for_backward(rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, normal, colors, depth, alpha, rendered_normal, rendered_pred_normal)
+        ctx.save_for_backward(rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, normal, pred_normal, colors, depth, alpha, rendered_normal, rendered_pred_normal)
         return colors, depth, alpha, rendered_normal, rendered_pred_normal
 
     @staticmethod
     def backward(ctx, grad_out_color, grad_out_depth, grad_out_alpha, grad_out_rendered_normal, grad_out_rendered_pred_normal):
-        rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, normal, colors, depth, alpha, rendered_normal = ctx.saved_tensors
+        rays_o, rays_d, gs_idxs, means3D, opacity, SinvR, shs, normal, pred_normal, colors, depth, alpha, rendered_normal, rendered_pred_normal = ctx.saved_tensors
         grad_rays_d = torch.zeros_like(rays_d)
         grad_means3D = torch.zeros_like(means3D)
         grad_opacity = torch.zeros_like(opacity)
