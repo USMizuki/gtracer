@@ -85,8 +85,8 @@ extern "C" __global__ void __raygen__rg() {
 
 				glm::vec3 c = computeColorFromSH_forward(params.deg, ray_d, params.shs + gs_idx * params.max_coeffs);
 
-				glm::vec3 n = (params.normal + gs_idx * params.max_coeffs)[0];
-				glm::vec3 pn = (params.pred_normal + gs_idx * params.max_coeffs)[0];
+				glm::vec3 n = (params.normal + gs_idx)[0];
+				glm::vec3 pn = (params.pred_normal + gs_idx)[0];
 
 				float w = T * alpha;
 				C += w * c;
@@ -109,8 +109,8 @@ extern "C" __global__ void __raygen__rg() {
 					glm::dot(grad_rendered_pred_normal, T * pn - (PN_final - PN))
 				) / max(1e-6f, 1 - alpha);
 				computeColorFromSH_backward(params.deg, ray_d, params.shs + gs_idx * params.max_coeffs, dL_dc, params.grad_shs + gs_idx * params.max_coeffs);
-				atomic_add((float*)(params.grad_normal + gs_idx * params.max_coeffs), dL_dn);
-				atomic_add((float*)(params.grad_pred_normal + gs_idx * params.max_coeffs), dL_dpn);
+				atomic_add((float*)(params.grad_normal + gs_idx), dL_dn);
+				atomic_add((float*)(params.grad_pred_normal + gs_idx), dL_dpn);
 				float dL_do = dL_dalpha * G;
 				float dL_dG = dL_dalpha * o;
 				glm::vec3 dL_dpg = -dL_dG * G * p_g;

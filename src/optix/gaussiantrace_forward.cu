@@ -77,8 +77,8 @@ extern "C" __global__ void __raygen__rg() {
 
 				glm::vec3 c = computeColorFromSH_forward(params.deg, ray_d, params.shs + gs_idx * params.max_coeffs);
 				
-				glm::vec3 n = (params.normal + gs_idx * params.max_coeffs)[0];
-				glm::vec3 pn = (params.pred_normal + gs_idx * params.max_coeffs)[0];
+				glm::vec3 n = (params.normal + gs_idx)[0];
+				glm::vec3 pn = (params.pred_normal + gs_idx)[0];
 
 				float w = T * alpha;
 				C += w * c;
