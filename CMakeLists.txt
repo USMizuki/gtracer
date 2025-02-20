@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 
+set(CMAKE_CUDA_COMPILER /data/cuda/cuda-11.8/cuda/bin/nvcc)
+
 project(GaussianTracer
 	VERSION 1.0
 	DESCRIPTION "3D Gaussian Ray Tracer"

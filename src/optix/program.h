@@ -57,7 +57,7 @@ namespace optix {
 				// This is the name of the param struct variable in our device code
 				pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
 
-				OPTIX_CHECK_THROW_LOG(optixModuleCreateFromPTX(
+				OPTIX_CHECK_THROW_LOG(optixModuleCreate(
 					optix,
 					&module_compile_options,
 					&pipeline_compile_options,
@@ -128,7 +128,7 @@ namespace optix {
 
 				OptixPipelineLinkOptions pipeline_link_options = {};
 				pipeline_link_options.maxTraceDepth = max_trace_depth;
-				pipeline_link_options.debugLevel    = OPTIX_COMPILE_DEBUG_LEVEL_DEFAULT;
+				// pipeline_link_options.debugLevel    = OPTIX_COMPILE_DEBUG_LEVEL_DEFAULT;
 
 				OPTIX_CHECK_THROW_LOG(optixPipelineCreate(
 					optix,
@@ -143,7 +143,7 @@ namespace optix {
 
 				OptixStackSizes stack_sizes = {};
 				for (auto& prog_group : program_groups) {
-					OPTIX_CHECK_THROW(optixUtilAccumulateStackSizes(prog_group, &stack_sizes));
+					OPTIX_CHECK_THROW(optixUtilAccumulateStackSizes(prog_group, &stack_sizes, m_pipeline));
 				}
 
 				uint32_t direct_callable_stack_size_from_traversal;
